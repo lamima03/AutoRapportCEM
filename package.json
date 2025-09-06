@@ -4,7 +4,7 @@
   "description": "Automatisation du traitement des RAW DATA en tableaux normalisés",
   "main": "index.js",
   "scripts": {
-    "dev": "node src/index.js",
+    "dev": "node ./src/index.js",
     "test": "test"
   },
   "keywords": [],
