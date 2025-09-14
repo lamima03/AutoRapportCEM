@@ -1,56 +1,85 @@
-import { extractRawText } from "mammoth";
+// import { extractRawText } from "mammoth";
+
+// export async function parseDocx(filePath) {
+//   const { value } = await extractRawText({ path: filePath });
+//   const lines = value.split("\n").map(l => l.trim()).filter(Boolean);
+  
+//   const results = [];
+//   let currentSample = "";
+//   let currentConfig = "";
+//   let currentRBW = "";
+//   let antennaPosition = "";
+//   let polarization = "";
+
+//   for (let line of lines) {
+//     // Détection de l'échantillon
+//     if (line.includes("Sample n°")) {
+//       currentSample = line.split("Sample n°").trim();
+//       continue;
+//     }
+
+//     // Détection de la configuration
+//     if (line.includes("Configuration")) {
+//       const configMatch = line.match(/Configuration\s*\((.+?)\)\s*(RBW\s*\S+)/i);
+//       if (configMatch) {
+//         currentConfig = configMatch.trim();
+//         currentRBW = configMatch.trim();
+//       }
+//       continue;
+//     }
+
+//     // Détection des positions d'antenne
+//     const positionMatch = line.match(/^(\s*\([XYZ]\))/);
+//     if (positionMatch) {
+//       antennaPosition = positionMatch;
+//       continue;
+//     }
+
+//     // Traitement des lignes de données
+//     if (line.includes("Vertical") || line.includes("Horizontal")) {
+//       const dataMatch = line.match(/(Vertical|Horizontal)\s+(-?\d+)\s+(-|\d+)\s+(\w+)\s+([\d.]+)/);
+      
+//       if (dataMatch) {
+//         polarization = dataMatch;
+        
+//         results.push({
+//           sample: currentSample,
+//           section: `${currentConfig} ${currentRBW}`,
+//           frequency: parseFloat(dataMatch),
+//           detector: "CISPR_Av",
+//           polarization,
+//           antennaPosition,
+//           margin: isNaN(dataMatch) ? null : parseInt(dataMatch),
+//           overtaking: dataMatch === "-" ? 0 : parseInt(dataMatch),
+//           conformity: dataMatch,
+//           limit: "RNDS-C-00517 V4.0"
+//         });
+//       }
+//     }
+//   }
+
+//   return results;
+// }
+
+// filepath: /Users/mac/Documents/MiniProjetCCC2/backend/src/parser.js
+
+import mammoth from "mammoth";
 
 export async function parseDocx(filePath) {
-  // 1. Extraction du texte brut depuis le .docx
-  const { value } = await extractRawText({ path: filePath });
-  
-  // 2. Découpe en lignes
-  const lines = value.split("\n").map(l => l.trim()).filter(Boolean);
-
-  // 3. Détection des sections et extraction (à adapter selon la structure réelle des RAW)
-  let currentSection = null;
-  const data = [];
-
-  for (let line of lines) {
-    if (/CISPR\.AVG|Q-PEAK|PEAK/i.test(line)) {
-      currentSection = line.toUpperCase();
-      continue;
-    }
-
-    // Exemple : si une ligne ressemble à "3.5 MHz   40.2 dBµV/m   43.0 dBµV/m   V"
-    const parts = line.split(/\s+/);
-
-    if (parts.length >= 4 && !isNaN(parts[0])) {
-      const frequency = parseFloat(parts[0]);
-      const measure = parseFloat(parts[1]);
-      const limit = parseFloat(parts[2]);
-      const polarization = parts[3];
-
-      data.push({
-        section: currentSection,
-        frequency,
-        sr: null, // à améliorer avec regex RBW
-        polarization,
-        correction: 0,
-        measure,
-        limit
-      });
-    }
-  }
-
-  return data;
-}
-
-
-function convertToCSV(rows = []) {
-  if (!rows || rows.length === 0) {
-    return "Sample,Section,Frequency,Measure,Limit,Marge,Verdict\n"; // header vide
-  }
-
-  const header = ['Sample','Section','Frequency','Measure','Limit','Marge','Verdict'];
-  const csvRows = rows.map(r => [
-    r.sample, r.section, r.frequency, r.measure, r.limit, r.marge, r.verdict
-  ].join(','));
-
-  return [header.join(','), ...csvRows].join('\n');
+  const result = await mammoth.extractRawText({ path: filePath });
+  return result.value.split("\n").map(line => {
+    const [sample, section, frequency, detector, polarization, antennaPosition, margin, overtaking, conformity, limit] = line.split(",");
+    return {
+      sample,
+      section,
+      frequency: parseFloat(frequency),
+      detector,
+      polarization,
+      antennaPosition,
+      margin: parseFloat(margin),
+      overtaking: parseFloat(overtaking),
+      conformity,
+      limit: parseFloat(limit)
+    };
+  });
 }
