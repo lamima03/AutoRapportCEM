@@ -1,146 +1,3 @@
-// import express from "express";
-// import multer from "multer";
-// import fs from "fs";
-// import path from "path";
-// import { fileURLToPath } from "url";
-// import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } from "docx";
-// import { applyRules } from "./src/rules.js";
-// import { parseWord } from "./src/parser.js"; // ✅ ton parseur XML
-
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = path.dirname(__filename);
-// const upload = multer({ dest: path.join(__dirname, "uploads") });
-// const app = express();
-// const PORT = 3000;
-
-// const resultsDir = path.join(__dirname, "results");
-// if (!fs.existsSync(resultsDir)) fs.mkdirSync(resultsDir);
-
-// //app.use(express.static(path.join(__dirname, "./public")));
-// app.use(express.static(path.join(__dirname, "../frontend")));
-// app.use(express.json());
-// // Rendre le dossier results accessible publiquement
-// app.use("/results", express.static(path.join(__dirname, "results")));
-
-
-// // === Fonction CSV ===
-// function convertToCSV(rows = []) {
-//   const header = ["Sample","Configuration","AntennaPosition","Polarization","Margin","Overtaking","Conformity","Frequency","AppliedLimit","DetectorType","Comment"];
-//   if (!Array.isArray(rows) || rows.length === 0) return header.join(",") + "\n";
-
-//   const csvRows = rows.map(r =>
-//     [
-//       r.sample ?? "",
-//       r.configuration ?? "",
-//       r.antennaPosition ?? "",
-//       r.polarization ?? "",
-//       r.margin ?? "",
-//       r.overtaking ?? "",
-//       r.conformity ?? "",
-//       r.frequency ?? "",
-//       r.appliedLimit ?? "",
-//       r.detectorType ?? "",
-//       r.comment ?? ""
-//     ].join(",")
-//   );
-
-//   return [header.join(","), ...csvRows].join("\n");
-// }
-
-// // === Fonction DOCX ===
-// async function generateDocx(results = [], outputPath) {
-//   if (!Array.isArray(results)) results = [results];
-
-//   const table = new Table({
-//     rows: results.map(r =>
-//       new TableRow({
-//         children: [
-//           r.sample, r.configuration, r.antennaPosition, r.polarization, r.margin,
-//           r.overtaking, r.conformity, r.frequency, r.appliedLimit, r.detectorType, r.comment
-//         ].map(v => new TableCell({
-//           children: [
-//             new Paragraph({
-//               children: [
-//                 new TextRun({
-//                   text: String(v ?? ""),
-//                   color: v === "FAIL" ? "FF0000" : (v === "PASS" ? "008000" : "000000"),
-//                   bold: v === "FAIL"
-//                 })
-//               ]
-//             })
-//           ]
-//         }))
-//       })
-//     )
-//   });
-
-//   const doc = new Document({ sections: [{ children: [table] }] });
-//   const buffer = await Packer.toBuffer(doc);
-//   fs.writeFileSync(outputPath, buffer);
-//   console.log(`📄 DOCX généré : ${outputPath}`);
-//   return buffer;
-// }
-
-// // === Endpoint Upload + Analyse ===
-// app.post("/upload", upload.single("file"), async (req, res) => {
-//   try {
-//     if (!req.file) return res.status(400).json({ error: "Aucun fichier reçu" });
-//     if (!fs.existsSync(req.file.path)) return res.status(400).json({ error: "Le fichier uploadé est introuvable" });
-//     if (path.extname(req.file.originalname).toLowerCase() !== ".docx") return res.status(400).json({ error: "Seuls les fichiers .docx sont acceptés" });
-
-//     console.log("📄 Fichier reçu :", req.file.path);
-
-//     let rows = await parseWord(req.file.path);
-//     console.log("✅ Parse terminé :", rows.length, "lignes");
-
-//     if (!Array.isArray(rows) || rows.length === 0) throw new Error("Le parseur n’a extrait aucune donnée !");
-
-//     let results = applyRules(rows);
-//     if (!Array.isArray(results)) results = [results];
-
-//     // CSV
-//     const csvPath = path.join(resultsDir, "output.csv");
-//     fs.writeFileSync(csvPath, convertToCSV(results));
-//     console.log("✅ CSV généré :", csvPath);
-
-//     // DOCX
-//     const docxPath = path.join(resultsDir, "output.docx");
-//     await generateDocx(results, docxPath);
-
-//     res.json({
-//   message: "Analyse réussie",
-//   results,
-//   verdict: "Analyse réussie ✅",
-//   csvUrl: `http://localhost:${PORT}/results/output.csv`,
-//   docxUrl: `http://localhost:${PORT}/results/output.docx`
-// });
-
-//   } catch (err) {
-//     console.error("❌ Erreur lors de l’analyse:", err);
-//     res.status(500).json({ error: err.message });
-//   }
-// });
-
-// // === Téléchargement ===
-// app.use("/results", express.static(resultsDir));
-
-// app.get("/download/:filename", (req, res) => {
-//   const filePath = path.join(resultsDir, req.params.filename);
-//   if (!fs.existsSync(filePath)) return res.status(404).send("Fichier introuvable");
-//   res.download(filePath, err => {
-//     if (err) {
-//       console.error("Erreur téléchargement :", err);
-//       res.status(500).send("Erreur serveur");
-//     } else {
-//       console.log("✅ Téléchargement réussi :", req.params.filename);
-//     }
-//   });
-// });
-
-// app.listen(PORT, () => {
-//   console.log(`🚀 Serveur lancé sur http://localhost:${PORT}`);
-// });
-
 import express from "express";
 import multer from "multer";
 import fs from "fs";
@@ -212,7 +69,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   // === SECTION CORRIGÉE ===
 
 // Application des règles métier
-let results = applyRules(normalizedData); // ← DÉPLACÉ AVANT le if
+let results = applyRules(normalizedData); 
 console.log("📋 Structure de results:", {
   rowsCount: results.rows ? results.rows.length : 0,
   hasRowsProperty: !!results.rows,
@@ -220,10 +77,10 @@ console.log("📋 Structure de results:", {
 });
 
 if (!Array.isArray(results.rows)) {
-  results = { rows: [results] }; // ← Corrige si results n'est pas un objet avec .rows
+  results = { rows: [results] }; 
 }
 
-// CSV - doit recevoir results.rows (le tableau)
+
 const csvData = convertToCSV(results.rows);
 console.log("📊 convertToCSV appelée avec", results.rows.length, "lignes");
 
@@ -243,8 +100,9 @@ console.log("✅ CSV généré :", csvPath);
 
 // DOCX avec signature
 await generateDocx(results, docxPath, signature);
-    // Nettoyer le fichier uploadé temporaire
-    fs.unlinkSync(req.file.path);
+
+// Nettoyer le fichier uploadé temporaire
+fs.unlinkSync(req.file.path);
 
     res.json({
       message: "Analyse réussie",
@@ -303,12 +161,8 @@ app.get("/files", (req, res) => {
   }
 });
 
-// Route de santé
-app.get("/health", (req, res) => {
-  res.json({ status: "OK", message: "Serveur fonctionnel" });
-});
 
 app.listen(PORT, () => {
   console.log(`🚀 Serveur lancé sur http://localhost:${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
+
 });

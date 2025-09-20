@@ -1,79 +1,3 @@
-// import fs from "fs";
-// import JSZip from "jszip";
-// import { parseStringPromise } from "xml2js";
-
-// export async function parseWord(filePath) {
-//   try {
-//     const buffer = fs.readFileSync(filePath);
-//     const zip = await JSZip.loadAsync(buffer);
-//     const docXmlFile = zip.file("word/document.xml");
-//     if (!docXmlFile) throw new Error("document.xml introuvable");
-
-//     const docXml = await docXmlFile.async("string");
-//     const docObj = await parseStringPromise(docXml);
-//     const body = docObj["w:document"]["w:body"][0];
-
-//     const paragraphs = body["w:p"] || [];
-//     const rows = [];
-
-//     let currentSample = "";
-//     let currentConfig = "";
-
-//     paragraphs.forEach(p => {
-//       const texts = [];
-//       const runs = p["w:r"] || [];
-//       runs.forEach(r => {
-//         const ts = r["w:t"] || [];
-//         ts.forEach(t => {
-//           if (typeof t === "string") texts.push(t);
-//           else if (t._) texts.push(t._);
-//         });
-//       });
-
-//       const line = texts.join("").trim();
-//       if (!line) return;
-
-//       // Détection Sample et Configuration
-//       if (/Sample n°/i.test(line)) {
-//         currentSample = line.replace(/Sample n°/i, "").trim();
-//         return;
-//       }
-//       if (/Configuration/i.test(line)) {
-//         currentConfig = line.replace(/Configuration/i, "").trim();
-//         return;
-//       }
-
-//       // Détection ligne de mesure : tab ou 2+ espaces
-//       const cols = line.split(/\t+|\s{2,}/).map(c => c.trim());
-
-//       // On ignore les lignes trop courtes
-//       if (cols.length === 0 || cols.every(c => c === "")) return;
-
-//       // Fusion des valeurs pour lignes partiellement remplies
-//       rows.push({
-//         sample: currentSample,
-//         configuration: currentConfig,
-//         antennaPosition: cols[0] || "",
-//         polarization: cols[1] || "",
-//         margin: cols[2] || "",
-//         overtaking: cols[3] || "",
-//         conformity: cols[4] || "",
-//         frequency: cols[5] || "",
-//         appliedLimit: cols[6] || "",
-//         detectorType: cols[7] || "",
-//         comment: cols[8] || ""
-//       });
-//     });
-
-//     console.log("✅ Analyse terminée :", rows.length, "lignes extraites");
-//     return rows;
-//   } catch (err) {
-//     console.error("❌ Erreur parseWord:", err);
-//     return [];
-//   }
-// }
-
-
 import fs from "fs";
 import mammoth from "mammoth";
 
@@ -167,7 +91,7 @@ export async function parseWord(filePath) {
         continue;
       }
       
-      // Si on est dans un bloc de données, collecter les lignes suivantes
+    
       if (currentData && dataLines.length > 0) {
         dataLines.push(line);
         

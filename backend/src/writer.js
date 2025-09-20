@@ -1,129 +1,15 @@
-// // import fs from "fs";
 
-
-// // export async function writeWord(data, outPath, hash) {
-// //   const content = `Hash: ${hash}\n\n` + data.join("\n");
-// //   fs.writeFileSync(outPath, content, "utf8");
-// //   console.log(`📝 Fichier Word généré : ${outPath}`);
-// // }
-
-// // // Fonction pour écrire un fichier CSV
-// // export async function writeCSV(data, outPath) {
-// //   const csvContent = data.join("\n");
-// //   fs.writeFileSync(outPath, csvContent, "utf8");
-// //   console.log(`📊 Fichier CSV généré : ${outPath}`);
-// // }
-
-
-// import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } from "docx";
-
-// // === Fonction CSV ===
-// export function convertToCSV(rows = []) {
-//   const header = ["Sample","Configuration","AntennaPosition","Polarization","Margin","Overtaking",
-//                  "Conformity","Frequency","AppliedLimit","DetectorType","Comment","Verdict"];
-  
-//   if (!Array.isArray(rows) || rows.length === 0) {
-//     return header.join(",") + "\n";
-//   }
-
-//   const csvRows = rows.map(r =>
-//     header.map(field => {
-//       const value = r[field.toLowerCase()] ?? "";
-//       return `"${value.toString().replace(/"/g, '""')}"`;
-//     }).join(",")
-//   );
-
-//   return [header.join(","), ...csvRows].join("\n");
-// }
-
-// // === Fonction DOCX ===
-// export async function generateDocx(results = [], outputPath) {
-//   const fs = await import('fs');
-  
-//   if (!Array.isArray(results) || results.length === 0) {
-//     const doc = new Document({
-//       sections: [{
-//         properties: {},
-//         children: [
-//           new Paragraph({
-//             children: [new TextRun({ text: "Aucune donnée à afficher", bold: true })]
-//           })
-//         ]
-//       }]
-//     });
-    
-//     const buffer = await Packer.toBuffer(doc);
-//     fs.writeFileSync(outputPath, buffer);
-//     return buffer;
-//   }
-
-//   // Création de l'en-tête du tableau
-//   const headers = ["Sample", "Configuration", "Antenna Position", "Polarization", "Margin", 
-//                   "Overtaking", "Conformity", "Frequency", "Applied Limit", "Detector Type", 
-//                   "Comment", "Verdict"];
-  
-//   const headerRow = new TableRow({
-//     children: headers.map(headerText => 
-//       new TableCell({
-//         children: [new Paragraph({
-//           children: [new TextRun({ text: headerText, bold: true })]
-//         })]
-//       })
-//     )
-//   });
-
-//   // Création des lignes de données
-//   const dataRows = results.map(result => {
-//     return new TableRow({
-//       children: [
-//         result.sample, result.configuration, result.antennaPosition, result.polarization, 
-//         result.margin, result.overtaking, result.conformity, result.frequency, 
-//         result.appliedLimit, result.detectorType, result.comment, result.verdict
-//       ].map(value => {
-//         const text = String(value ?? "");
-//         return new TableCell({
-//           children: [new Paragraph({
-//             children: [new TextRun({
-//               text: text,
-//               color: text === "FAIL" ? "FF0000" : (text === "PASS" ? "008000" : "000000"),
-//               bold: text === "FAIL"
-//             })]
-//           })]
-//         });
-//       })
-//     });
-//   });
-
-//   const table = new Table({
-//     rows: [headerRow, ...dataRows],
-//     width: { size: 100, type: "pct" }
-//   });
-
-//   const doc = new Document({ 
-//     sections: [{ 
-//       properties: {},
-//       children: [table] 
-//     }] 
-//   });
-  
-//   const buffer = await Packer.toBuffer(doc);
-//   fs.writeFileSync(outputPath, buffer);
-//   console.log(`📄 DOCX généré : ${outputPath}`);
-//   return buffer;
-// }
 
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun } from "docx";
 
-// === Fonction CSV CORRIGÉE ===
-// === Fonction CSV avec PLUS de debug ===
+
 export function convertToCSV(data = []) {
   console.log("📊 convertToCSV appelée avec:", 
     Array.isArray(data) ? data.length : "non-array", 
     "éléments de type", 
     Array.isArray(data) && data.length > 0 ? typeof data[0] : "unknown"
   );
-  
-  // Si data est un objet avec propriété rows, utilisez data.rows
+
   const rows = data.rows || (Array.isArray(data) ? data : []);
   console.log("📊 Utilisation de", rows.length, "lignes pour le CSV");
   
@@ -139,7 +25,7 @@ export function convertToCSV(data = []) {
   console.log("✅ Conversion de", rows.length, "lignes en CSV");
   
   const csvRows = rows.map((row, index) => {
-    if (index < 3) { // Log seulement les 3 premières pour éviter le spam
+    if (index < 3) {
       console.log(`📝 Ligne ${index + 1}:`, 
         row.sample, row.frequency, row.verdict);
     }

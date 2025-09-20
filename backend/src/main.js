@@ -28,8 +28,7 @@ async function main() {
     const raw = fs.readFileSync(filePath, "utf-8");
     data = JSON.parse(raw);
   } else if (selectedFile.endsWith(".docx")) {
-    // Ici tu devras parser le docx en JSON avant de passer à applyRules
-    // Par exemple avec "docx" ou "mammoth" npm package
+   
     console.log("Traitement des fichiers DOCX à implémenter...");
     return;
   }
