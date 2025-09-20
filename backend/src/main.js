@@ -1,35 +1,55 @@
-import express from 'express';
-import multer from 'multer';
-import cors from 'cors';
-import { applyRules } from './rules.js';
+import fs from "fs";
+import path from "path";
+import inquirer from "inquirer";
+import applyRules from "./rules.js";
 
-const app = express();
+const uploadsDir = "./uploads";
 
-// ⚡ Autoriser le frontend à faire des requêtes
-app.use(cors());
+// Lire tous les fichiers du dossier uploads
+const files = fs.readdirSync(uploadsDir).filter(f => f.endsWith(".json") || f.endsWith(".docx"));
 
-// ⚡ Servir le frontend HTML + Tailwind
-app.use(express.static('frontend')); // <-- ton dossier qui contient index.html, style.css, etc.
+async function main() {
+  const answers = await inquirer.prompt([
+    {
+      type: "list",
+      name: "fileChoice",
+      message: "Choisissez un fichier à traiter :",
+      choices: files,
+    },
+  ]);
 
-// ⚡ Config pour l'upload de fichiers
-const upload = multer({ dest: 'uploads/' });
+  const selectedFile = answers.fileChoice;
+  const filePath = path.join(uploadsDir, selectedFile);
 
-// ⚡ Route pour traiter le fichier DOCX
-app.post('/upload', upload.single('docx'), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: 'Fichier manquant' });
+  let data;
 
-    // Ici tu parserais le fichier .docx et appliquerais les règles
-    const data = []; // exemple : parseDocx(req.file.path)
-    const result = applyRules(data);
-
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+  if (selectedFile.endsWith(".json")) {
+    // Lire le JSON
+    const raw = fs.readFileSync(filePath, "utf-8");
+    data = JSON.parse(raw);
+  } else if (selectedFile.endsWith(".docx")) {
+    // Ici tu devras parser le docx en JSON avant de passer à applyRules
+    // Par exemple avec "docx" ou "mammoth" npm package
+    console.log("Traitement des fichiers DOCX à implémenter...");
+    return;
   }
-});
 
-// ⚡ Démarrer le serveur
-app.listen(3000, () => {
-  console.log('Serveur lancé sur http://localhost:3000');
-});
+  const result = applyRules(data);
+
+  console.log(`\n===== Résultat pour ${selectedFile} =====\n`);
+  for (const section of Object.keys(result.sectionVerdicts)) {
+    console.log(`Section: ${section} -> Verdict: ${result.sectionVerdicts[section]}`);
+    result.rows
+      .filter(r => r.section === section)
+      .forEach(r => {
+        console.log(
+          `  Sample: ${r.sample} | Freq: ${r.frequency} | Mesure: ${r.measure} | Limite: ${r.limit} | Marge: ${r.marge} | Verdict: ${r.verdict}`
+        );
+      });
+    console.log("");
+  }
+  console.log(`Verdict global: ${result.globalVerdict}`);
+  console.log("===== Fin du test =====\n");
+}
+
+main();

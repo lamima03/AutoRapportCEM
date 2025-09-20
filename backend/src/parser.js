@@ -1,85 +1,226 @@
-// import { extractRawText } from "mammoth";
+// import fs from "fs";
+// import JSZip from "jszip";
+// import { parseStringPromise } from "xml2js";
 
-// export async function parseDocx(filePath) {
-//   const { value } = await extractRawText({ path: filePath });
-//   const lines = value.split("\n").map(l => l.trim()).filter(Boolean);
-  
-//   const results = [];
-//   let currentSample = "";
-//   let currentConfig = "";
-//   let currentRBW = "";
-//   let antennaPosition = "";
-//   let polarization = "";
+// export async function parseWord(filePath) {
+//   try {
+//     const buffer = fs.readFileSync(filePath);
+//     const zip = await JSZip.loadAsync(buffer);
+//     const docXmlFile = zip.file("word/document.xml");
+//     if (!docXmlFile) throw new Error("document.xml introuvable");
 
-//   for (let line of lines) {
-//     // Détection de l'échantillon
-//     if (line.includes("Sample n°")) {
-//       currentSample = line.split("Sample n°").trim();
-//       continue;
-//     }
+//     const docXml = await docXmlFile.async("string");
+//     const docObj = await parseStringPromise(docXml);
+//     const body = docObj["w:document"]["w:body"][0];
 
-//     // Détection de la configuration
-//     if (line.includes("Configuration")) {
-//       const configMatch = line.match(/Configuration\s*\((.+?)\)\s*(RBW\s*\S+)/i);
-//       if (configMatch) {
-//         currentConfig = configMatch.trim();
-//         currentRBW = configMatch.trim();
-//       }
-//       continue;
-//     }
+//     const paragraphs = body["w:p"] || [];
+//     const rows = [];
 
-//     // Détection des positions d'antenne
-//     const positionMatch = line.match(/^(\s*\([XYZ]\))/);
-//     if (positionMatch) {
-//       antennaPosition = positionMatch;
-//       continue;
-//     }
+//     let currentSample = "";
+//     let currentConfig = "";
 
-//     // Traitement des lignes de données
-//     if (line.includes("Vertical") || line.includes("Horizontal")) {
-//       const dataMatch = line.match(/(Vertical|Horizontal)\s+(-?\d+)\s+(-|\d+)\s+(\w+)\s+([\d.]+)/);
-      
-//       if (dataMatch) {
-//         polarization = dataMatch;
-        
-//         results.push({
-//           sample: currentSample,
-//           section: `${currentConfig} ${currentRBW}`,
-//           frequency: parseFloat(dataMatch),
-//           detector: "CISPR_Av",
-//           polarization,
-//           antennaPosition,
-//           margin: isNaN(dataMatch) ? null : parseInt(dataMatch),
-//           overtaking: dataMatch === "-" ? 0 : parseInt(dataMatch),
-//           conformity: dataMatch,
-//           limit: "RNDS-C-00517 V4.0"
+//     paragraphs.forEach(p => {
+//       const texts = [];
+//       const runs = p["w:r"] || [];
+//       runs.forEach(r => {
+//         const ts = r["w:t"] || [];
+//         ts.forEach(t => {
+//           if (typeof t === "string") texts.push(t);
+//           else if (t._) texts.push(t._);
 //         });
-//       }
-//     }
-//   }
+//       });
 
-//   return results;
+//       const line = texts.join("").trim();
+//       if (!line) return;
+
+//       // Détection Sample et Configuration
+//       if (/Sample n°/i.test(line)) {
+//         currentSample = line.replace(/Sample n°/i, "").trim();
+//         return;
+//       }
+//       if (/Configuration/i.test(line)) {
+//         currentConfig = line.replace(/Configuration/i, "").trim();
+//         return;
+//       }
+
+//       // Détection ligne de mesure : tab ou 2+ espaces
+//       const cols = line.split(/\t+|\s{2,}/).map(c => c.trim());
+
+//       // On ignore les lignes trop courtes
+//       if (cols.length === 0 || cols.every(c => c === "")) return;
+
+//       // Fusion des valeurs pour lignes partiellement remplies
+//       rows.push({
+//         sample: currentSample,
+//         configuration: currentConfig,
+//         antennaPosition: cols[0] || "",
+//         polarization: cols[1] || "",
+//         margin: cols[2] || "",
+//         overtaking: cols[3] || "",
+//         conformity: cols[4] || "",
+//         frequency: cols[5] || "",
+//         appliedLimit: cols[6] || "",
+//         detectorType: cols[7] || "",
+//         comment: cols[8] || ""
+//       });
+//     });
+
+//     console.log("✅ Analyse terminée :", rows.length, "lignes extraites");
+//     return rows;
+//   } catch (err) {
+//     console.error("❌ Erreur parseWord:", err);
+//     return [];
+//   }
 // }
 
-// filepath: /Users/mac/Documents/MiniProjetCCC2/backend/src/parser.js
 
+import fs from "fs";
 import mammoth from "mammoth";
 
-export async function parseDocx(filePath) {
-  const result = await mammoth.extractRawText({ path: filePath });
-  return result.value.split("\n").map(line => {
-    const [sample, section, frequency, detector, polarization, antennaPosition, margin, overtaking, conformity, limit] = line.split(",");
-    return {
-      sample,
-      section,
-      frequency: parseFloat(frequency),
-      detector,
-      polarization,
-      antennaPosition,
-      margin: parseFloat(margin),
-      overtaking: parseFloat(overtaking),
-      conformity,
-      limit: parseFloat(limit)
-    };
-  });
+export async function parseWord(filePath) {
+  try {
+    console.log("Début du parsing du fichier:", filePath);
+    
+    // Extraction du texte brut
+    const result = await mammoth.extractRawText({ path: filePath });
+    const rawText = result.value;
+    
+    const lines = rawText.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+    
+    console.log("Nombre total de lignes:", lines.length);
+    
+    const rows = [];
+    let currentSample = "";
+    let currentConfig = "";
+    let currentRBW = "";
+    let currentSection = "";
+    
+    let currentData = null;
+    let dataLines = [];
+
+    // Parcourir toutes les lignes
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Détection du sample
+      if (line.includes('Sample n°')) {
+        currentSample = line.replace('Sample n°', '').trim();
+        console.log("Sample détecté:", currentSample);
+        continue;
+      }
+      
+      // Détection de la configuration
+      if (line.includes('Configuration')) {
+        currentConfig = line;
+        const rbwMatch = line.match(/RBW\s*[:]?\s*(\d+(?:\.\d+)?\s*k?Hz)/i);
+        currentRBW = rbwMatch ? rbwMatch[1] : "";
+        console.log("Configuration détectée:", currentConfig);
+        
+        // Déterminer la section basée sur la configuration
+        if (line.includes('9kHz')) currentSection = "9kHz";
+        if (line.includes('120kHz')) currentSection = "120kHz";
+        if (line.includes('1MHz')) currentSection = "1MHz";
+        if (line.includes('GNSS')) currentSection = "GNSS";
+        
+        continue;
+      }
+      
+      // Détection du type de détecteur
+      if (line.match(/CISPR\.AVG|CISPR_AVG|CISPR AVG|AVG/i)) {
+        currentSection = "CISPR.AVG";
+        continue;
+      } else if (line.match(/Q-Peak|Q_Peak|Q Peak|QPk|QP/i)) {
+        currentSection = "Q-Peak";
+        continue;
+      } else if (line.match(/Peak|Pk/i) && !line.match(/Quasi/)) {
+        currentSection = "Peak";
+        continue;
+      }
+      
+      // Détection du début d'un bloc de données (Antenna Position)
+      if (line.match(/\([XYZ]\)|[XYZ]\s+Vertical|[XYZ]\s+Horizontal/i)) {
+        if (currentData) {
+          // Sauvegarder le bloc précédent
+          rows.push(currentData);
+        }
+        
+        currentData = {
+          section: currentSection,
+          sample: currentSample,
+          configuration: currentConfig,
+          rbw: currentRBW,
+          antennaPosition: line,
+          polarization: "",
+          margin: "",
+          overtaking: "",
+          conformity: "",
+          frequency: "",
+          appliedLimit: "",
+          detectorType: "",
+          comment: "",
+          rawData: line
+        };
+        
+        dataLines = [line];
+        continue;
+      }
+      
+      // Si on est dans un bloc de données, collecter les lignes suivantes
+      if (currentData && dataLines.length > 0) {
+        dataLines.push(line);
+        
+        // Mapper les lignes aux champs correspondants
+        const lineIndex = dataLines.length - 1;
+        
+        switch (lineIndex) {
+          case 1: currentData.polarization = line; break;
+          case 2: currentData.margin = line; break;
+          case 3: currentData.overtaking = line; break;
+          case 4: currentData.conformity = line; break;
+          case 5: currentData.frequency = line; break;
+          case 6: currentData.appliedLimit = line; break;
+          case 7: currentData.detectorType = line; break;
+          case 8: currentData.comment = line; break;
+        }
+        
+        // Si on a collecté 8 lignes de données, terminer le bloc
+        if (dataLines.length >= 9) {
+          rows.push(currentData);
+          currentData = null;
+          dataLines = [];
+        }
+      }
+    }
+    
+    // Ajouter le dernier bloc si exists
+    if (currentData) {
+      rows.push(currentData);
+    }
+    
+    console.log("✅ Parse terminé :", rows.length, "lignes extraites");
+    
+    // Afficher quelques exemples pour vérification
+    if (rows.length > 0) {
+      console.log("Exemples de données extraites:");
+      for (let i = 0; i < Math.min(3, rows.length); i++) {
+        console.log(`Ligne ${i + 1}:`, {
+          sample: rows[i].sample,
+          config: rows[i].configuration,
+          position: rows[i].antennaPosition,
+          polarization: rows[i].polarization,
+          margin: rows[i].margin,
+          frequency: rows[i].frequency,
+          conformity: rows[i].conformity
+        });
+      }
+    }
+    
+    return rows;
+    
+  } catch (err) {
+    console.error("❌ Erreur dans parseWord:", err);
+    return [];
+  }
 }
