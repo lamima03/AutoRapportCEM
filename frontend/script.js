@@ -2,6 +2,10 @@ const uploadBtn = document.getElementById("uploadBtn");
 const fileInput = document.getElementById("fileInput");
 const result = document.getElementById("result");
 
+
+const baseUrl = "http://localhost:3000"; 
+
+
 // Quand on sélectionne un fichier, remet le bouton en bleu
 fileInput.addEventListener("change", () => {
   uploadBtn.classList.remove("bg-green-600");
@@ -41,8 +45,10 @@ uploadBtn.addEventListener("click", async () => {
         ✅ <span class="font-semibold">${file.name}</span> analysé avec succès !<br><br>
         🔎 Verdict Global: <b class="text-blue-600">${data.verdict}</b><br><br>
 
-        📥 <a href="${data.csvUrl}" download="result.csv" class="text-blue-600 underline">Télécharger CSV</a><br>
-        📥 <a href="${data.docxUrl}" download="result.docx" class="text-blue-600 underline">Télécharger DOCX</a>
+        📥 <a href="${data.csvUrl}" download="result.csv">Télécharger CSV</a><br>
+
+        📥 <a href="${data.docxUrl}" download="result.docx">Télécharger DOCX</a>
+
       `;
 
       // Réinitialise le champ input
@@ -65,9 +71,4 @@ uploadBtn.addEventListener("click", async () => {
   }
 });
 
-res.json({
-  message: "Analyse terminée ✅",
-  verdict: result.globalVerdict,
-  csvUrl: "/download/output.csv",   // 👈 chemin corrigé
-  docxUrl: "/download/output.docx"  // 👈 chemin corrigé
-});
+

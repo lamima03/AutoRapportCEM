@@ -1,7 +1,56 @@
+# Dependencies
 node_modules/
-uploads/
-results/
-out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Production builds
+build/
+dist/
+out/           # ← CELUI-CI BLOQUAIT PEUT-ÊTRE README.md
+.coverage/
+
+# Environment variables
 .env
-.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
 *.log
+logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary folders
+uploads/      # ✅ Conservez celui-ci
+temp/
+tmp/
+
+# Fichiers spécifiques à exclure
+debug_parser.log
+parser_debug.log
